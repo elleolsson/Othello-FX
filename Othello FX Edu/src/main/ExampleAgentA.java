@@ -1,59 +1,138 @@
 package main;
 
 import com.eudycontreras.othello.capsules.AgentMove;
+import com.eudycontreras.othello.capsules.MoveWrapper;
+import com.eudycontreras.othello.capsules.ObjectiveWrapper;
 import com.eudycontreras.othello.controllers.AgentController;
 import com.eudycontreras.othello.controllers.Agent;
 import com.eudycontreras.othello.enumerations.PlayerTurn;
 import com.eudycontreras.othello.models.GameBoardState;
-import com.eudycontreras.othello.threading.ThreadManager;
-import com.eudycontreras.othello.threading.TimeSpan;
+import com.eudycontreras.othello.utilities.GameTreeUtility;
 
-/**
- * <H2>Created by</h2> Eudy Contreras
- * <h4> Mozilla Public License 2.0 </h4>
- * Licensed under the Mozilla Public License 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * <a href="https://www.mozilla.org/en-US/MPL/2.0/">visit Mozilla Public Lincense Version 2.0</a>
- * <H2>Class description</H2>
- * 
- * @author Eudy Contreras
- */
-public class ExampleAgentA extends Agent{
-	
-	private ExampleAgentA() {
-		super(PlayerTurn.PLAYER_ONE);
-		// TODO Auto-generated constructor stub
-	}
-	
-	private ExampleAgentA(PlayerTurn playerTurn) {
-		super(playerTurn);
-		// TODO Auto-generated constructor stub
-	}
+import java.util.List;
 
-	/**
-	 * Delete the content of this method and Implement your logic here!
-	 */
-	@Override
-	public AgentMove getMove(GameBoardState gameState) {
-		return getExampleMove(gameState);
-	}
-	
-	/**
-	 * Default template move which serves as an example of how to implement move
-	 * making logic. Note that this method does not use Alpha beta pruning and
-	 * the use of this method can disqualify you
-	 * 
-	 * @param gameState
-	 * @return
-	 */
-	private AgentMove getExampleMove(GameBoardState gameState){
-		
-		int waitTime = UserSettings.MIN_SEARCH_TIME; // 1.5 seconds
-		
-		ThreadManager.pause(TimeSpan.millis(waitTime)); // Pauses execution for the wait time to cause delay
-		
-		return AgentController.getExampleMove(gameState, playerTurn); // returns an example AI move Note: this is not AB Pruning
-	}
+public class ExampleAgentA extends Agent {
 
+    private static final int MAX_DEPTH = 4;
+    private int nodesExamined;
+    private int maxDepthReached;
+
+    public ExampleAgentA() {
+        super(PlayerTurn.PLAYER_ONE);
+    }
+
+    public ExampleAgentA(PlayerTurn playerTurn) {
+        super(playerTurn);
+    }
+
+    @Override
+    public AgentMove getMove(GameBoardState gameState) {
+        nodesExamined = 0;
+        maxDepthReached = 0;
+        return minimaxDecision(gameState);
+    }
+
+    private AgentMove minimaxDecision(GameBoardState state) {
+
+        int bestValue = Integer.MIN_VALUE;
+        ObjectiveWrapper bestMove = null;
+
+        List<ObjectiveWrapper> moves =
+                AgentController.getAvailableMoves(state, playerTurn);
+
+        for (ObjectiveWrapper move : moves) {
+
+            GameBoardState newState =
+                    AgentController.getNewState(state, move);
+
+            int value = minValue(newState, MAX_DEPTH - 1,
+                    Integer.MIN_VALUE, Integer.MAX_VALUE);
+
+            if (value > bestValue) {
+                bestValue = value;
+                bestMove = move;
+            }
+        }
+
+        if (bestMove == null) {
+            return null;
+        }
+        setNodesExamined(nodesExamined);
+        setSearchDepth(MAX_DEPTH - maxDepthReached);
+        return new MoveWrapper(bestMove);
+    }
+
+    private int maxValue(GameBoardState state, int depth, int alpha, int beta) {
+        nodesExamined++;
+        maxDepthReached = Math.max(maxDepthReached, depth);
+        if (depth == 0 || AgentController.isTerminal(state, playerTurn)) {
+            return evaluate(state);
+        }
+
+        int value = Integer.MIN_VALUE;
+
+        List<ObjectiveWrapper> moves =
+                AgentController.getAvailableMoves(state, playerTurn);
+
+        if (moves.isEmpty()) {
+            return evaluate(state);
+        }
+
+        for (ObjectiveWrapper move : moves) {
+
+            GameBoardState newState =
+                    AgentController.getNewState(state, move);
+
+            value = Math.max(value,
+                    minValue(newState, depth - 1, alpha, beta));
+
+            // Pruning
+            if (value >= beta) {
+                return value;
+            }
+
+            alpha = Math.max(alpha, value);
+        }
+
+        return value;
+    }
+
+    private int minValue(GameBoardState state, int depth, int alpha, int beta) {
+        nodesExamined++;
+        maxDepthReached = Math.max(maxDepthReached, depth);
+        if (depth == 0 || AgentController.isTerminal(state, playerTurn)) {
+            return evaluate(state);
+        }
+
+        int value = Integer.MAX_VALUE;
+
+        List<ObjectiveWrapper> moves =
+                AgentController.getAvailableMoves(state, GameTreeUtility.getCounterPlayer(playerTurn));
+
+        if (moves.isEmpty()) {
+            return evaluate(state);
+        }
+
+        for (ObjectiveWrapper move : moves) {
+
+            GameBoardState newState =
+                    AgentController.getNewState(state, move);
+
+            value = Math.min(value,
+                    maxValue(newState, depth - 1, alpha, beta));
+
+            // Pruning
+            if (value <= alpha) {
+                return value;
+            }
+
+            beta = Math.min(beta, value);
+        }
+
+        return value;
+    }
+
+    private int evaluate(GameBoardState state) {
+        return (int) AgentController.getGameEvaluation(state, playerTurn);
+    }
 }
