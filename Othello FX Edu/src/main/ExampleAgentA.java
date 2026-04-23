@@ -16,6 +16,7 @@ public class ExampleAgentA extends Agent {
     private static final int MAX_DEPTH = 4;
     private int nodesExamined;
     private int maxDepthReached;
+    private int prunedNodes;
 
     public ExampleAgentA() {
         super(PlayerTurn.PLAYER_ONE);
@@ -29,6 +30,7 @@ public class ExampleAgentA extends Agent {
     public AgentMove getMove(GameBoardState gameState) {
         nodesExamined = 0;
         maxDepthReached = 0;
+        prunedNodes = 0;
         return minimaxDecision(gameState);
     }
 
@@ -58,7 +60,13 @@ public class ExampleAgentA extends Agent {
             return null;
         }
         setNodesExamined(nodesExamined);
-        setSearchDepth(MAX_DEPTH - maxDepthReached);
+        setSearchDepth(MAX_DEPTH);
+        setPrunedCounter(prunedNodes);
+        System.out.println(
+                "Move done | Nodes: " + nodesExamined +
+                        " | Depth: " + MAX_DEPTH +
+                        " | Pruned: " + prunedNodes
+        );
         return new MoveWrapper(bestMove);
     }
 
@@ -88,6 +96,7 @@ public class ExampleAgentA extends Agent {
 
             // Pruning
             if (value >= beta) {
+                prunedNodes++;
                 return value;
             }
 
@@ -123,6 +132,7 @@ public class ExampleAgentA extends Agent {
 
             // Pruning
             if (value <= alpha) {
+                prunedNodes++;
                 return value;
             }
 
