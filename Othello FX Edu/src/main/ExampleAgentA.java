@@ -31,7 +31,9 @@ public class ExampleAgentA extends Agent {
         nodesExamined = 0;
         maxDepthReached = 0;
         prunedNodes = 0;
+        AgentManager.printBoard(gameState.getGameBoard().getCells(), true);
         return minimaxDecision(gameState);
+
     }
 
     private AgentMove minimaxDecision(GameBoardState state) {
