@@ -86,7 +86,7 @@ public class ExampleAgentA extends Agent {
                 AgentController.getAvailableMoves(state,
                         GameTreeUtility.getCounterPlayer(playerTurn));
 
-        // Terminal: ingen kan spela
+
         if ((myMoves.isEmpty() && opponentMoves.isEmpty()) || depth == 0) {
             return evaluate(state);
         }
