@@ -14,8 +14,8 @@ import java.util.List;
 public class ExampleAgentA extends Agent {
 
     private static final int MAX_DEPTH = 4;
+
     private int nodesExamined;
-    private int maxDepthReached;
     private int prunedNodes;
 
     public ExampleAgentA() {
@@ -29,11 +29,11 @@ public class ExampleAgentA extends Agent {
     @Override
     public AgentMove getMove(GameBoardState gameState) {
         nodesExamined = 0;
-        maxDepthReached = 0;
         prunedNodes = 0;
-        AgentManager.printBoard(gameState.getGameBoard().getCells(), true);
-        return minimaxDecision(gameState);
 
+        AgentManager.printBoard(gameState.getGameBoard().getCells(), true);
+
+        return minimaxDecision(gameState);
     }
 
     private AgentMove minimaxDecision(GameBoardState state) {
@@ -43,6 +43,10 @@ public class ExampleAgentA extends Agent {
 
         List<ObjectiveWrapper> moves =
                 AgentController.getAvailableMoves(state, playerTurn);
+
+        if (moves.isEmpty()) {
+            return null;
+        }
 
         for (ObjectiveWrapper move : moves) {
 
@@ -58,37 +62,43 @@ public class ExampleAgentA extends Agent {
             }
         }
 
-        if (bestMove == null) {
-            return null;
-        }
         setNodesExamined(nodesExamined);
         setSearchDepth(MAX_DEPTH);
         setPrunedCounter(prunedNodes);
+
         System.out.println(
                 "Move done | Nodes: " + nodesExamined +
                         " | Depth: " + MAX_DEPTH +
                         " | Pruned: " + prunedNodes
         );
+
         return new MoveWrapper(bestMove);
     }
 
     private int maxValue(GameBoardState state, int depth, int alpha, int beta) {
         nodesExamined++;
-        maxDepthReached = Math.max(maxDepthReached, depth);
-        if (depth == 0 || AgentController.isTerminal(state, playerTurn)) {
+
+        // Hämta moves för båda spelare
+        List<ObjectiveWrapper> myMoves =
+                AgentController.getAvailableMoves(state, playerTurn);
+
+        List<ObjectiveWrapper> opponentMoves =
+                AgentController.getAvailableMoves(state,
+                        GameTreeUtility.getCounterPlayer(playerTurn));
+
+        // Terminal: ingen kan spela
+        if ((myMoves.isEmpty() && opponentMoves.isEmpty()) || depth == 0) {
             return evaluate(state);
         }
 
         int value = Integer.MIN_VALUE;
 
-        List<ObjectiveWrapper> moves =
-                AgentController.getAvailableMoves(state, playerTurn);
-
-        if (moves.isEmpty()) {
+        // Pass move
+        if (myMoves.isEmpty()) {
             return minValue(state, depth - 1, alpha, beta);
         }
 
-        for (ObjectiveWrapper move : moves) {
+        for (ObjectiveWrapper move : myMoves) {
 
             GameBoardState newState =
                     AgentController.getNewState(state, move);
@@ -96,7 +106,7 @@ public class ExampleAgentA extends Agent {
             value = Math.max(value,
                     minValue(newState, depth - 1, alpha, beta));
 
-            // Pruning
+            // Alpha-Beta pruning
             if (value >= beta) {
                 prunedNodes++;
                 return value;
@@ -110,21 +120,27 @@ public class ExampleAgentA extends Agent {
 
     private int minValue(GameBoardState state, int depth, int alpha, int beta) {
         nodesExamined++;
-        maxDepthReached = Math.max(maxDepthReached, depth);
-        if (depth == 0 || AgentController.isTerminal(state, playerTurn)) {
+
+        List<ObjectiveWrapper> myMoves =
+                AgentController.getAvailableMoves(state,
+                        GameTreeUtility.getCounterPlayer(playerTurn));
+
+        List<ObjectiveWrapper> opponentMoves =
+                AgentController.getAvailableMoves(state, playerTurn);
+
+        // Terminal
+        if ((myMoves.isEmpty() && opponentMoves.isEmpty()) || depth == 0) {
             return evaluate(state);
         }
 
         int value = Integer.MAX_VALUE;
 
-        List<ObjectiveWrapper> moves =
-                AgentController.getAvailableMoves(state, GameTreeUtility.getCounterPlayer(playerTurn));
-
-        if (moves.isEmpty()) {
+        // Pass move
+        if (myMoves.isEmpty()) {
             return maxValue(state, depth - 1, alpha, beta);
         }
 
-        for (ObjectiveWrapper move : moves) {
+        for (ObjectiveWrapper move : myMoves) {
 
             GameBoardState newState =
                     AgentController.getNewState(state, move);
@@ -132,7 +148,7 @@ public class ExampleAgentA extends Agent {
             value = Math.min(value,
                     maxValue(newState, depth - 1, alpha, beta));
 
-            // Pruning
+            // Alpha-Beta pruning
             if (value <= alpha) {
                 prunedNodes++;
                 return value;
