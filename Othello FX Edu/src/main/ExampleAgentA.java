@@ -85,7 +85,7 @@ public class ExampleAgentA extends Agent {
                 AgentController.getAvailableMoves(state, playerTurn);
 
         if (moves.isEmpty()) {
-            return evaluate(state);
+            return minValue(state, depth - 1, alpha, beta);
         }
 
         for (ObjectiveWrapper move : moves) {
@@ -121,7 +121,7 @@ public class ExampleAgentA extends Agent {
                 AgentController.getAvailableMoves(state, GameTreeUtility.getCounterPlayer(playerTurn));
 
         if (moves.isEmpty()) {
-            return evaluate(state);
+            return maxValue(state, depth - 1, alpha, beta);
         }
 
         for (ObjectiveWrapper move : moves) {
